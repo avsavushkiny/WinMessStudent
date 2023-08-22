@@ -13,6 +13,7 @@ using System.IO.Ports;
 using System.Diagnostics;
 using System.Threading;
 using System.Reflection.Emit;
+using System.Reflection;
 
 namespace WinMessStudent
 {
@@ -30,47 +31,121 @@ namespace WinMessStudent
                     ICON);
         }
 
-        private void path_to_file()
+        private bool search_file_preferences()
         {
-            try
+            if (File.Exists(path_to_preferences_file) == false)             //если файл не найден
             {
-                path_to_message_file = File.ReadAllText("C:\\Winme\\preferences.txt");
+                System.IO.Directory.CreateDirectory(path_to_preferences);   //создаем директорию
+                File.Create(path_to_preferences_file).Close();              //создаем файл  preferences.txt
+
+                //textBox1.Text = "The preferences.txt file has been created! Open the file " + path_to_preferences_file +
+                    //", write the path to the message.txt file. For example: \\\\Server\\D\\message.txt";
+                textBox1.Enabled = false;
+
+                message_box("The preferences.txt file has been created! \n" +
+                    "\n- Open the file " + path_to_preferences_file +
+                    "\n- Write the path to the message.txt file" +
+                    "\n\nFor example:" +
+                    "\n\\\\Server\\D\\message.txt", "Information", MessageBoxIcon.Information);
+
+                label1.ForeColor = Color.DarkRed;
+                label1.Text = "Error 1";
+
+                return false;
+            }
+            else
+            {
+                label1.ForeColor = Color.DarkSlateGray;
+                label1.Text = path_to_message_file;
+
+                return true;
+            }
+        }
+        
+        private bool search_file_message()
+        {
+            path_to_message_file = File.ReadAllText("C:\\Winme\\preferences.txt");
+
+            if (File.Exists(path_to_message_file) == true)
+            {
+                label1.ForeColor = Color.DarkSlateGray;
                 label1.Text = path_to_message_file;
 
                 if (path_to_message_file == "")
                 {
-                    textBox1.Text = "The file preferences.txt is empty! Specify the path to the message file!";
+                    //textBox1.Text = "The file preferences.txt is empty! Specify the path to the message file!";
                     textBox1.Enabled = false;
 
-                    message_box("The file preferences.txt is empty! " +
+                    message_box("The file preferences.txt is empty!" +
                         "\nSpecify the path to the message file!", "Error", MessageBoxIcon.Error);
 
-                    label1.Text = "Empty";
+                    label1.ForeColor = Color.DarkRed;
+                    label1.Text = "Error 2";
+
+                    return false;
                 }
+
+                return true;
             }
-            catch
+            else
             {
-                message_box("Unforeseen error related to the configuration file! " +
-                    "\n Check the location of the preferences.txt file." +
-                    "\n\n" + path_to_preferences_file,
-                    "Error", MessageBoxIcon.Error);
+                label1.ForeColor = Color.DarkRed;
+                label1.Text = "Error 3";
+
+                message_box("Message file not found." +
+                    "\n\nPossible reasons:" +
+                    "\n- the path to the message file is incorrect" +
+                    "\n- the server (remote computer) is not responding or is turned off", "Error", MessageBoxIcon.Error);
+                
+                return false;
             }
         }
 
         public Form1()
         {
             InitializeComponent();
+
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            Text = Text + " " + version.Major + "." + version.Minor + " (build " + version.Revision + ")"; //change form title
         }
 
+        //load Form
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            search_file_preferences();
+            search_file_message();
+        }
+
+        //butoon Read
         private void button1_Click(object sender, EventArgs e)
         {
             try
             {
-                text = File.ReadAllText(path_to_message_file);
-                textBox1.Text = text;
-                Clipboard.SetText(text);
+                if (File.Exists(path_to_message_file) == true)          //проверяем наличие файла, а вдруг сервер не работает?
+                {
+                    text = File.ReadAllText(path_to_message_file);      //считываем данные с текстового блока и кидаем в файл
+                    textBox1.Text = text;
+                    Clipboard.SetText(text);
 
-                message_box("Data copied to buffer!", "Information", MessageBoxIcon.Information);
+                    textBox1.Enabled = true;
+
+                    label1.ForeColor = Color.DarkSlateGray;
+                    label1.Text = path_to_message_file;
+
+                    //message_box("Data copied to buffer!", "Information", MessageBoxIcon.Information);
+                }
+                else
+                {
+                    label1.ForeColor = Color.DarkRed;
+                    label1.Text = "Error 4";
+
+                    textBox1.Enabled = false;
+
+                    message_box("Message not accepted! Possible reasons:" +
+                        "\n- the path to the message.txt file is not specified" +
+                        "\n- problems accessing the message.txt file",
+                        "Warning", MessageBoxIcon.Warning);
+                }
             }
             catch
             {
@@ -81,31 +156,7 @@ namespace WinMessStudent
             }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            if (File.Exists(path_to_preferences_file) == false)
-            {
-                System.IO.Directory.CreateDirectory(path_to_preferences);
-                File.Create(path_to_preferences_file).Close();
-
-                textBox1.Text = "The preferences.txt file has been created! Open the file " + path_to_preferences_file +
-                    ", write the path to the message.txt file. For example: \\\\Server\\D\\message.txt";
-                textBox1.Enabled = false;
-
-                message_box("The preferences.txt file has been created! \n" +
-                    "\n- Open the file " + path_to_preferences_file +
-                    "\n- Write the path to the message.txt file" +
-                    "\n\nFor example:" +
-                    "\n\\\\Server\\D\\message.txt", "Information", MessageBoxIcon.Information);
-            }
-            else
-            {
-                label1.Text = path_to_message_file;
-            }
-
-            path_to_file();
-        }
-
+        //button to Browser
         private void button3_Click(object sender, EventArgs e)
         {
             try
